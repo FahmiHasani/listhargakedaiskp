@@ -4,7 +4,7 @@ import pandas as pd
 import html
 
 # Konfigurasi halaman
-st.set_page_config(page_title="Daftar Harga Kedai", page_icon="✨", layout="centered")
+st.set_page_config(page_title="Daftar Harga Kedai SKP", page_icon="✨", layout="centered")
 
 # --- AMBIL PIN ADMIN ---
 # Jika sudah diatur di Streamlit Secrets akan pakai itu, jika belum pakai default "1234"
