@@ -20,10 +20,11 @@ if "is_admin" not in st.session_state:
 # --- CUSTOM CSS ---
 st.markdown("""
 <style>
-    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600&display=swap');
 
     html, body, [class*="css"] {
-        font-family: 'Plus Jakarta Sans', sans-serif;
+        font-family: 'Manrope', sans-serif;
+        font-weight: 400;
     }
 
     #MainMenu {visibility: hidden;}
@@ -41,19 +42,20 @@ st.markdown("""
     }
     .hero-title {
         font-size: 24px;
-        font-weight: 700;
+        font-weight: 600;
         margin: 0;
         letter-spacing: 0.5px;
     }
     .hero-sub {
         font-size: 13px;
+        font-weight: 400;
         color: #94A3B8;
         margin-top: 6px;
         margin-bottom: 0;
     }
     .cat-header {
         font-size: 13px;
-        font-weight: 700;
+        font-weight: 600;
         text-transform: uppercase;
         letter-spacing: 1.2px;
         color: #D97706;
@@ -79,11 +81,11 @@ st.markdown("""
     }
     .product-name {
         font-size: 15px;
-        font-weight: 600;
+        font-weight: 400;
     }
     .product-price {
         font-size: 15px;
-        font-weight: 700;
+        font-weight: 500;
         color: #10B981;
         white-space: nowrap;
         margin-left: 12px;
