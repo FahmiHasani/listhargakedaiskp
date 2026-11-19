@@ -4,7 +4,7 @@ import pandas as pd
 import html
 
 # Konfigurasi halaman
-st.set_page_config(page_title="Daftar Harga Kedai SKP", page_icon="✨", layout="centered")
+st.set_page_config(page_title="Daftar Harga Kedai", page_icon="✨", layout="centered")
 
 # --- AMBIL PIN ADMIN ---
 # Jika sudah diatur di Streamlit Secrets akan pakai itu, jika belum pakai default "1234"
@@ -194,3 +194,98 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # --- TAMPILAN BERDASARKAN ROLE ---
+if not st.session_state["is_admin"]:
+    # === TAMPILAN KHUSUS KARYAWAN (HANYA BISA LIHAT & CARI) ===
+    tampilkan_daftar_harga()
+
+    st.markdown("<br>", unsafe_allow_html=True)
+    with st.expander("🔐 Akses Admin (Khusus Pemilik)"):
+        with st.form("form_login_admin"):
+            pin_input = st.text_input("Masukkan PIN Admin", type="password", placeholder="••••")
+            btn_login = st.form_submit_button("Masuk", use_container_width=True)
+            if btn_login:
+                if pin_input == ADMIN_PIN:
+                    st.session_state["is_admin"] = True
+                    st.rerun()
+                else:
+                    st.error("PIN salah!")
+
+else:
+    # === TAMPILAN KHUSUS ADMIN (BISA LIHAT, TAMBAH, UBAH, HAPUS) ===
+    col_info, col_out = st.columns([3, 1])
+    with col_info:
+        st.success("🔓 Mode Admin Aktif")
+    with col_out:
+        if st.button("Keluar", use_container_width=True):
+            st.session_state["is_admin"] = False
+            st.rerun()
+
+    tab1, tab2, tab3 = st.tabs(["📋 Daftar Harga", "➕ Tambah Produk", "✏️ Kelola Harga"])
+
+    with tab1:
+        tampilkan_daftar_harga()
+
+    with tab2:
+        with st.form("form_tambah", clear_on_submit=True):
+            st.markdown("##### Tambah Menu Baru")
+            nama_baru = st.text_input("Nama Produk", placeholder="Contoh: Es Matcha Latte")
+            col1, col2 = st.columns(2)
+            with col1:
+                kat_baru = st.selectbox("Kategori", KATEGORI_LIST)
+            with col2:
+                harga_baru = st.number_input("Harga (Rp)", min_value=0, step=500)
+            
+            simpan = st.form_submit_button("Simpan Produk", use_container_width=True, type="primary")
+
+            if simpan:
+                if nama_baru.strip() == "":
+                    st.error("Nama produk tidak boleh kosong!")
+                else:
+                    tambah_produk(nama_baru.strip(), kat_baru, int(harga_baru))
+                    st.success(f"Berhasil menambahkan '{nama_baru}' ({format_rupiah(harga_baru)})!")
+                    st.rerun()
+
+    with tab3:
+        df_edit = get_data()
+        if df_edit.empty:
+            st.info("Belum ada produk yang tersimpan.")
+        else:
+            opsi = {
+                f"{row['nama']} ({row['kategori']}) — {format_rupiah(row['harga'])}": row
+                for _, row in df_edit.iterrows()
+            }
+            pilihan = st.selectbox("Pilih produk yang ingin diubah:", list(opsi.keys()))
+            produk_terpilih = opsi[pilihan]
+
+            with st.form("form_edit"):
+                edit_nama = st.text_input("Nama Produk", value=produk_terpilih["nama"])
+                col1, col2 = st.columns(2)
+                with col1:
+                    edit_kat = st.selectbox(
+                        "Kategori",
+                        KATEGORI_LIST,
+                        index=KATEGORI_LIST.index(produk_terpilih["kategori"])
+                    )
+                with col2:
+                    edit_harga = st.number_input(
+                        "Harga Baru (Rp)",
+                        min_value=0,
+                        step=500,
+                        value=int(produk_terpilih["harga"])
+                    )
+
+                col_simpan, col_hapus = st.columns(2)
+                with col_simpan:
+                    btn_update = st.form_submit_button("💾 Simpan Perubahan", use_container_width=True, type="primary")
+                with col_hapus:
+                    btn_hapus = st.form_submit_button("🗑️ Hapus Produk", use_container_width=True)
+
+                if btn_update:
+                    update_harga(int(produk_terpilih["id"]), edit_nama.strip(), edit_kat, int(edit_harga))
+                    st.success("Data produk berhasil diperbarui!")
+                    st.rerun()
+
+                if btn_hapus:
+                    hapus_produk(int(produk_terpilih["id"]))
+                    st.warning("Produk telah dihapus.")
+                    st.rerun()
