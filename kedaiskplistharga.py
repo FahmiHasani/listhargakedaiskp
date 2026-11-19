@@ -4,7 +4,7 @@ import pandas as pd
 import html
 
 # Konfigurasi halaman
-st.set_page_config(page_title="Daftar Harga Kedai SKP", page_icon="✨", layout="centered")
+st.set_page_config(page_title="DAFTAR HARGA KEDAI SKP", page_icon="✨", layout="centered")
 
 # --- AMBIL PIN ADMIN ---
 # Jika sudah diatur di Streamlit Secrets akan pakai itu, jika belum pakai default "1234"
@@ -43,7 +43,7 @@ st.markdown("""
         font-size: 24px;
         font-weight: 700;
         margin: 0;
-        letter-spacing: -0.5px;
+        letter-spacing: 0.5px;
     }
     .hero-sub {
         font-size: 13px;
@@ -188,7 +188,7 @@ IKON_KATEGORI = {"Makanan": "🍽️", "Snack": "🍟", "Minuman": "🥤"}
 # --- HEADER ---
 st.markdown("""
 <div class="hero-box">
-    <p class="hero-title">Daftar Harga Kedai</p>
+    <p class="hero-title">DAFTAR HARGA KEDAI SKP</p>
     <p class="hero-sub">Cek harga cepat & mudah untuk seluruh menu</p>
 </div>
 """, unsafe_allow_html=True)
