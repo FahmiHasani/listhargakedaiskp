@@ -1,9 +1,90 @@
 import streamlit as st
 import sqlite3
 import pandas as pd
+import html
 
 # Konfigurasi halaman
-st.set_page_config(page_title="Daftar Harga Toko", page_icon="🛒", layout="centered")
+st.set_page_config(page_title="Daftar Harga Kedai SKP", page_icon="✨", layout="centered")
+
+# --- CUSTOM CSS UNTUK TAMPILAN ELEGAN ---
+st.markdown("""
+<style>
+    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap');
+
+    html, body, [class*="css"] {
+        font-family: 'Plus Jakarta Sans', sans-serif;
+    }
+
+    /* Sembunyikan elemen bawaan Streamlit agar terlihat seperti aplikasi */
+    #MainMenu {visibility: hidden;}
+    footer {visibility: hidden;}
+    header {visibility: hidden;}
+
+    /* Header Utama */
+    .hero-box {
+        background: linear-gradient(135deg, #1E293B 0%, #0F172A 100%);
+        padding: 24px 20px;
+        border-radius: 16px;
+        color: #FFFFFF;
+        text-align: center;
+        margin-bottom: 20px;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
+    }
+    .hero-title {
+        font-size: 24px;
+        font-weight: 700;
+        margin: 0;
+        letter-spacing: -0.5px;
+    }
+    .hero-sub {
+        font-size: 13px;
+        color: #94A3B8;
+        margin-top: 6px;
+        margin-bottom: 0;
+    }
+
+    /* Judul Kategori */
+    .cat-header {
+        font-size: 13px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 1.2px;
+        color: #D97706;
+        margin-top: 22px;
+        margin-bottom: 10px;
+        padding-bottom: 6px;
+        border-bottom: 1px solid rgba(148, 163, 184, 0.25);
+    }
+
+    /* Kartu Produk */
+    .product-card {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 14px 18px;
+        margin-bottom: 10px;
+        border-radius: 12px;
+        background-color: rgba(148, 163, 184, 0.08);
+        border: 1px solid rgba(148, 163, 184, 0.2);
+        transition: transform 0.15s ease, border-color 0.15s ease;
+    }
+    .product-card:hover {
+        transform: translateY(-2px);
+        border-color: #D97706;
+    }
+    .product-name {
+        font-size: 15px;
+        font-weight: 600;
+    }
+    .product-price {
+        font-size: 15px;
+        font-weight: 700;
+        color: #10B981;
+        white-space: nowrap;
+        margin-left: 12px;
+    }
+</style>
+""", unsafe_allow_html=True)
 
 # --- DATABASE SETUP ---
 def init_db():
@@ -17,7 +98,6 @@ def init_db():
             harga INTEGER NOT NULL
         )
     """)
-    # Isi data contoh jika tabel masih kosong
     c.execute("SELECT COUNT(*) FROM produk")
     if c.fetchone()[0] == 0:
         sample_data = [
@@ -65,26 +145,27 @@ def hapus_produk(id_produk):
 def format_rupiah(angka):
     return f"Rp {angka:,.0f}".replace(",", ".")
 
-# Inisialisasi DB
 init_db()
 KATEGORI_LIST = ["Makanan", "Snack", "Minuman"]
+IKON_KATEGORI = {"Makanan": "🍽️", "Snack": "🍟", "Minuman": "🥤"}
 
-# --- TAMPILAN WEB ---
-st.title("🛒 Daftar Harga Toko")
+# --- HEADER ---
+st.markdown("""
+<div class="hero-box">
+    <p class="hero-title">Daftar Harga Kedai</p>
+    <p class="hero-sub">Cek harga cepat & mudah untuk seluruh menu</p>
+</div>
+""", unsafe_allow_html=True)
 
-tab1, tab2, tab3 = st.tabs(["🔍 Cek Harga", "➕ Tambah Produk", "✏️ Ubah Harga"])
+tab1, tab2, tab3 = st.tabs(["📋 Daftar Harga", "➕ Tambah Produk", "✏️ Kelola Harga"])
 
 # --- TAB 1: CEK HARGA & SEARCH ---
 with tab1:
     df = get_data()
 
-    col1, col2 = st.columns([2, 1])
-    with col1:
-        keyword = st.text_input("Cari produk...", placeholder="Ketik nama makanan/snack/minuman")
-    with col2:
-        filter_kat = st.selectbox("Kategori", ["Semua"] + KATEGORI_LIST)
+    keyword = st.text_input("", placeholder="🔍 Cari nama makanan, snack, atau minuman...", label_visibility="collapsed")
+    filter_kat = st.radio("Kategori", ["Semua"] + KATEGORI_LIST, horizontal=True, label_visibility="collapsed")
 
-    # Filter data berdasarkan pencarian dan kategori
     hasil = df.copy()
     if keyword:
         hasil = hasil[hasil["nama"].str.contains(keyword, case=False, na=False)]
@@ -92,27 +173,36 @@ with tab1:
         hasil = hasil[hasil["kategori"] == filter_kat]
 
     if hasil.empty:
-        st.warning("Produk tidak ditemukan.")
+        st.info("Produk yang dicari tidak ditemukan.")
     else:
-        # Tampilkan dibedakan per kategori
         kategori_tampil = KATEGORI_LIST if filter_kat == "Semua" else [filter_kat]
         for kat in kategori_tampil:
             sub_df = hasil[hasil["kategori"] == kat]
             if not sub_df.empty:
-                st.subheader(f"📂 {kat}")
-                tampil = sub_df[["nama", "harga"]].copy()
-                tampil["harga"] = tampil["harga"].apply(format_rupiah)
-                tampil.columns = ["Nama Produk", "Harga"]
-                st.dataframe(tampil, use_container_width=True, hide_index=True)
+                ikon = IKON_KATEGORI.get(kat, "📂")
+                st.markdown(f'<div class="cat-header">{ikon} {kat}</div>', unsafe_allow_html=True)
+                for _, row in sub_df.iterrows():
+                    nama_aman = html.escape(str(row["nama"]))
+                    harga_str = format_rupiah(row["harga"])
+                    st.markdown(f"""
+                    <div class="product-card">
+                        <span class="product-name">{nama_aman}</span>
+                        <span class="product-price">{harga_str}</span>
+                    </div>
+                    """, unsafe_allow_html=True)
 
 # --- TAB 2: TAMBAH PRODUK ---
 with tab2:
-    st.subheader("Tambah Produk Baru")
     with st.form("form_tambah", clear_on_submit=True):
-        nama_baru = st.text_input("Nama Produk")
-        kat_baru = st.selectbox("Kategori", KATEGORI_LIST)
-        harga_baru = st.number_input("Harga (Rp)", min_value=0, step=500)
-        simpan = st.form_submit_button("Simpan Produk")
+        st.markdown("##### Tambah Menu Baru")
+        nama_baru = st.text_input("Nama Produk", placeholder="Contoh: Es Matcha Latte")
+        col1, col2 = st.columns(2)
+        with col1:
+            kat_baru = st.selectbox("Kategori", KATEGORI_LIST)
+        with col2:
+            harga_baru = st.number_input("Harga (Rp)", min_value=0, step=500)
+        
+        simpan = st.form_submit_button("Simpan Produk", use_container_width=True, type="primary")
 
         if simpan:
             if nama_baru.strip() == "":
@@ -124,15 +214,13 @@ with tab2:
 
 # --- TAB 3: UBAH HARGA / HAPUS ---
 with tab3:
-    st.subheader("Ubah Harga atau Hapus Produk")
     df_edit = get_data()
 
     if df_edit.empty:
         st.info("Belum ada produk yang tersimpan.")
     else:
-        # Buat pilihan dropdown dengan format rapi
         opsi = {
-            f"{row['nama']} ({row['kategori']}) - {format_rupiah(row['harga'])}": row
+            f"{row['nama']} ({row['kategori']}) — {format_rupiah(row['harga'])}": row
             for _, row in df_edit.iterrows()
         }
         pilihan = st.selectbox("Pilih produk yang ingin diubah:", list(opsi.keys()))
@@ -140,21 +228,24 @@ with tab3:
 
         with st.form("form_edit"):
             edit_nama = st.text_input("Nama Produk", value=produk_terpilih["nama"])
-            edit_kat = st.selectbox(
-                "Kategori",
-                KATEGORI_LIST,
-                index=KATEGORI_LIST.index(produk_terpilih["kategori"])
-            )
-            edit_harga = st.number_input(
-                "Harga Baru (Rp)",
-                min_value=0,
-                step=500,
-                value=int(produk_terpilih["harga"])
-            )
+            col1, col2 = st.columns(2)
+            with col1:
+                edit_kat = st.selectbox(
+                    "Kategori",
+                    KATEGORI_LIST,
+                    index=KATEGORI_LIST.index(produk_terpilih["kategori"])
+                )
+            with col2:
+                edit_harga = st.number_input(
+                    "Harga Baru (Rp)",
+                    min_value=0,
+                    step=500,
+                    value=int(produk_terpilih["harga"])
+                )
 
             col_simpan, col_hapus = st.columns(2)
             with col_simpan:
-                btn_update = st.form_submit_button("💾 Simpan Perubahan", use_container_width=True)
+                btn_update = st.form_submit_button("💾 Simpan Perubahan", use_container_width=True, type="primary")
             with col_hapus:
                 btn_hapus = st.form_submit_button("🗑️ Hapus Produk", use_container_width=True)
 
