@@ -6,7 +6,18 @@ import html
 # Konfigurasi halaman
 st.set_page_config(page_title="Daftar Harga Kedai SKP", page_icon="✨", layout="centered")
 
-# --- CUSTOM CSS UNTUK TAMPILAN ELEGAN ---
+# --- AMBIL PIN ADMIN ---
+# Jika sudah diatur di Streamlit Secrets akan pakai itu, jika belum pakai default "1234"
+try:
+    ADMIN_PIN = str(st.secrets["ADMIN_PIN"])
+except Exception:
+    ADMIN_PIN = "1234"
+
+# Inisialisasi status login admin
+if "is_admin" not in st.session_state:
+    st.session_state["is_admin"] = False
+
+# --- CUSTOM CSS ---
 st.markdown("""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap');
@@ -15,12 +26,10 @@ st.markdown("""
         font-family: 'Plus Jakarta Sans', sans-serif;
     }
 
-    /* Sembunyikan elemen bawaan Streamlit agar terlihat seperti aplikasi */
     #MainMenu {visibility: hidden;}
     footer {visibility: hidden;}
     header {visibility: hidden;}
 
-    /* Header Utama */
     .hero-box {
         background: linear-gradient(135deg, #1E293B 0%, #0F172A 100%);
         padding: 24px 20px;
@@ -42,8 +51,6 @@ st.markdown("""
         margin-top: 6px;
         margin-bottom: 0;
     }
-
-    /* Judul Kategori */
     .cat-header {
         font-size: 13px;
         font-weight: 700;
@@ -55,8 +62,6 @@ st.markdown("""
         padding-bottom: 6px;
         border-bottom: 1px solid rgba(148, 163, 184, 0.25);
     }
-
-    /* Kartu Produk */
     .product-card {
         display: flex;
         justify-content: space-between;
@@ -145,22 +150,7 @@ def hapus_produk(id_produk):
 def format_rupiah(angka):
     return f"Rp {angka:,.0f}".replace(",", ".")
 
-init_db()
-KATEGORI_LIST = ["Makanan", "Snack", "Minuman"]
-IKON_KATEGORI = {"Makanan": "🍽️", "Snack": "🍟", "Minuman": "🥤"}
-
-# --- HEADER ---
-st.markdown("""
-<div class="hero-box">
-    <p class="hero-title">Daftar Harga Kedai</p>
-    <p class="hero-sub">Cek harga cepat & mudah untuk seluruh menu</p>
-</div>
-""", unsafe_allow_html=True)
-
-tab1, tab2, tab3 = st.tabs(["📋 Daftar Harga", "➕ Tambah Produk", "✏️ Kelola Harga"])
-
-# --- TAB 1: CEK HARGA & SEARCH ---
-with tab1:
+def tampilkan_daftar_harga():
     df = get_data()
 
     keyword = st.text_input("", placeholder="🔍 Cari nama makanan, snack, atau minuman...", label_visibility="collapsed")
@@ -191,70 +181,16 @@ with tab1:
                     </div>
                     """, unsafe_allow_html=True)
 
-# --- TAB 2: TAMBAH PRODUK ---
-with tab2:
-    with st.form("form_tambah", clear_on_submit=True):
-        st.markdown("##### Tambah Menu Baru")
-        nama_baru = st.text_input("Nama Produk", placeholder="Contoh: Es Matcha Latte")
-        col1, col2 = st.columns(2)
-        with col1:
-            kat_baru = st.selectbox("Kategori", KATEGORI_LIST)
-        with col2:
-            harga_baru = st.number_input("Harga (Rp)", min_value=0, step=500)
-        
-        simpan = st.form_submit_button("Simpan Produk", use_container_width=True, type="primary")
+init_db()
+KATEGORI_LIST = ["Makanan", "Snack", "Minuman"]
+IKON_KATEGORI = {"Makanan": "🍽️", "Snack": "🍟", "Minuman": "🥤"}
 
-        if simpan:
-            if nama_baru.strip() == "":
-                st.error("Nama produk tidak boleh kosong!")
-            else:
-                tambah_produk(nama_baru.strip(), kat_baru, int(harga_baru))
-                st.success(f"Berhasil menambahkan '{nama_baru}' ({format_rupiah(harga_baru)})!")
-                st.rerun()
+# --- HEADER ---
+st.markdown("""
+<div class="hero-box">
+    <p class="hero-title">Daftar Harga Kedai</p>
+    <p class="hero-sub">Cek harga cepat & mudah untuk seluruh menu</p>
+</div>
+""", unsafe_allow_html=True)
 
-# --- TAB 3: UBAH HARGA / HAPUS ---
-with tab3:
-    df_edit = get_data()
-
-    if df_edit.empty:
-        st.info("Belum ada produk yang tersimpan.")
-    else:
-        opsi = {
-            f"{row['nama']} ({row['kategori']}) — {format_rupiah(row['harga'])}": row
-            for _, row in df_edit.iterrows()
-        }
-        pilihan = st.selectbox("Pilih produk yang ingin diubah:", list(opsi.keys()))
-        produk_terpilih = opsi[pilihan]
-
-        with st.form("form_edit"):
-            edit_nama = st.text_input("Nama Produk", value=produk_terpilih["nama"])
-            col1, col2 = st.columns(2)
-            with col1:
-                edit_kat = st.selectbox(
-                    "Kategori",
-                    KATEGORI_LIST,
-                    index=KATEGORI_LIST.index(produk_terpilih["kategori"])
-                )
-            with col2:
-                edit_harga = st.number_input(
-                    "Harga Baru (Rp)",
-                    min_value=0,
-                    step=500,
-                    value=int(produk_terpilih["harga"])
-                )
-
-            col_simpan, col_hapus = st.columns(2)
-            with col_simpan:
-                btn_update = st.form_submit_button("💾 Simpan Perubahan", use_container_width=True, type="primary")
-            with col_hapus:
-                btn_hapus = st.form_submit_button("🗑️ Hapus Produk", use_container_width=True)
-
-            if btn_update:
-                update_harga(int(produk_terpilih["id"]), edit_nama.strip(), edit_kat, int(edit_harga))
-                st.success("Data produk berhasil diperbarui!")
-                st.rerun()
-
-            if btn_hapus:
-                hapus_produk(int(produk_terpilih["id"]))
-                st.warning("Produk telah dihapus.")
-                st.rerun()
+# --- TAMPILAN BERDASARKAN ROLE ---
